@@ -28,6 +28,9 @@ def main():
     prevRollParams = ""
     prevHeaveParams = ""
     prevGyroParams = ""
+    prevWaterlineParams = ""
+    prevDepthParams = ""
+
     fileCounter=0
     print ("processing with settings: ", args)
     root = createHVFRoot(datetime.now())
@@ -50,6 +53,8 @@ def main():
                 root, prevHeaveParams = createHeaveSensor(root, r.currentRecordDateTime(), datagram.installationParameters, prevHeaveParams)
                 root, prevPitchParams = createPitchSensor(root, r.currentRecordDateTime(), datagram.installationParameters, prevPitchParams)
                 root, prevRollParams = createRollSensor(root, r.currentRecordDateTime(), datagram.installationParameters, prevRollParams)
+                root, prevWaterlineParams = createWaterlineSensor(root, r.currentRecordDateTime(), datagram.installationParameters, prevWaterlineParams)
+                root, prevDepthParams = createDepthSensor(root, r.currentRecordDateTime(), datagram.installationParameters, prevDepthParams, datagram.EMModel)
 
                 InstallationRecordCount = InstallationRecordCount + 1
         update_progress("Processed file: %s InstallationRecords: %d" % (filename, InstallationRecordCount), (fileCounter/len(args.inputFile)))
@@ -59,6 +64,98 @@ def main():
     f.write(prettify (root))
     f.close()
     update_progress("Processed all files. InstallationRecords: %d" % (InstallationRecordCount), 1)
+
+def createDepthSensor(root, datetime, installationParameters, prevParams, EMModel):
+    installationRecordDateString = datetime.strftime("%Y-%j %H:%M:%S")
+
+    # if (set(prevParams) == set(newParams):
+    Sensor = SubElement(root, 'DepthSensor')
+    TimeStamp = SubElement(Sensor, 'TimeStamp')
+    TimeStamp.set('value', installationRecordDateString)
+    Latency = SubElement(TimeStamp, 'Latency')
+    Latency.set('value', '0.000')
+    W = SubElement(TimeStamp, 'SensorClass')
+    W.set('value', "Swath")
+
+    Trans = SubElement(TimeStamp, 'TransducerEntries')
+
+    # now convert transducer 1 entries
+    newParams = {}
+    newParams["S1X"] = installationParameters.get("S1X")
+    newParams["S1Y"] = installationParameters.get("S1Y")
+    newParams["S1Z"] = installationParameters.get("S1Z")
+    newParams["S1H"] = installationParameters.get("S1H")
+    newParams["S1P"] = installationParameters.get("S1P")
+    newParams["S1R"] = installationParameters.get("S1R")
+    Tx = SubElement(TimeStamp, 'Trans')
+    Tx.set('Number', "1")
+    Tx.set('StartBeam', "1")
+    Tx.set('Model', EMModel)
+
+    Off = SubElement(Tx, 'Offsets')
+    Off.set('X', newParams["S1X"])
+    Off.set('Y', newParams["S1Y"])
+    Off.set('Z', newParams["S1Z"])
+    Off.set('Latency', "0.000")
+
+    Mount = SubElement(Tx, 'MountAngle')
+    Mount.set('Pitch', newParams["S1P"])
+    Mount.set('Roll', newParams["S1R"])
+    Mount.set('Azimuth', newParams["S1H"])
+
+
+    newParams = {}
+    newParams["S2X"] = installationParameters.get("S2X")
+    newParams["S2Y"] = installationParameters.get("S2Y")
+    newParams["S2Z"] = installationParameters.get("S2Z")
+    newParams["S2H"] = installationParameters.get("S2H")
+    newParams["S2P"] = installationParameters.get("S2P")
+    newParams["S2R"] = installationParameters.get("S2R")
+
+    newParams = {}
+    newParams["S3X"] = installationParameters.get("S3X")
+    newParams["S3Y"] = installationParameters.get("S3Y")
+    newParams["S3Z"] = installationParameters.get("S3Z")
+    newParams["S3H"] = installationParameters.get("S3H")
+    newParams["S3P"] = installationParameters.get("S3P")
+    newParams["S3R"] = installationParameters.get("S3R")
+
+
+    ApplyFlag = SubElement(TimeStamp, 'ApplyFlag')
+    ApplyFlag.set('value', 'No')
+
+    W = SubElement(TimeStamp, 'StdDev')
+    W.set('Waterline', '0.000')
+
+    C = SubElement(TimeStamp, 'Comment')
+    C.set('value', "from WLZ waterline field")
+
+    return root, newParams
+
+def createWaterlineSensor(root, datetime, installationParameters, prevParams):
+    installationRecordDateString = datetime.strftime("%Y-%j %H:%M:%S")
+    newParams = {}
+    newParams["WLZ"] = installationParameters.get("WLZ")
+
+    # if (set(prevParams) == set(newParams):
+    Sensor = SubElement(root, 'WaterlineHeight')
+    TimeStamp = SubElement(Sensor, 'TimeStamp')
+    TimeStamp.set('value', installationRecordDateString)
+    Latency = SubElement(TimeStamp, 'Latency')
+    Latency.set('value', '0.000')
+    W = SubElement(TimeStamp, 'Waterline')
+    W.set('value', newParams["WLZ"])
+
+    ApplyFlag = SubElement(TimeStamp, 'ApplyFlag')
+    ApplyFlag.set('value', 'No')
+
+    W = SubElement(TimeStamp, 'StdDev')
+    W.set('Waterline', '0.000')
+
+    C = SubElement(TimeStamp, 'Comment')
+    C.set('value', "from WLZ waterline field")
+
+    return root, newParams
 
 def createRollSensor(root, datetime, installationParameters, prevParams):
     installationRecordDateString = datetime.strftime("%Y-%j %H:%M:%S")
