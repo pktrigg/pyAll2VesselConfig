@@ -86,10 +86,12 @@ def createDepthSensor(root, datetime, installationParameters, prevParams, EMMode
     if EMModel == 122 or \  
        EMModel == 302 or \
        EMModel == 710:
-       # S1 is Tx and S2 is Rx 
+        # S1 is Tx and S2 is Rx 
+        createTransducer1(Trans)
 
     if EMModel == 2040:  
-       # S1 is Tx and S2 is Rx 
+        # S1 is Tx and S2 is Rx 
+        createTransducer1(Trans)
 
     #TODO need to figure out how to identify dial head system! pkpk
     #we can test for GO1 and GO2 which are the gain offsets for transducer 1 and 2.  If GO2 exists, we have a dual header
@@ -101,7 +103,6 @@ def createDepthSensor(root, datetime, installationParameters, prevParams, EMMode
        EMModel == 2045:
        # S1 is SonarHead1 and S2 is SonarHead2
 
-    createTransducer1(Trans)
     # now convert transducer 1 entries
     newParams = {}
     newParams["S1X"] = installationParameters.get("S1X")
