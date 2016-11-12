@@ -54,7 +54,7 @@ def main():
                 root, prevPitchParams = createPitchSensor(root, r.currentRecordDateTime(), datagram.installationParameters, prevPitchParams)
                 root, prevRollParams = createRollSensor(root, r.currentRecordDateTime(), datagram.installationParameters, prevRollParams)
                 root, prevWaterlineParams = createWaterlineSensor(root, r.currentRecordDateTime(), datagram.installationParameters, prevWaterlineParams)
-                root, prevDepthParams = createDepthSensor(root, r.currentRecordDateTime(), datagram.installationParameters, prevDepthParams, datagram.EMModel)
+                root, prevDepthParams = createDepthSensor(root, r.currentRecordDateTime(), datagram.installationParameters, prevDepthParams, datagram.EMModel, datagram.SerialNumber)
 
                 InstallationRecordCount = InstallationRecordCount + 1
         update_progress("Processed file: %s InstallationRecords: %d" % (filename, InstallationRecordCount), (fileCounter/len(args.inputFile)))
@@ -65,7 +65,7 @@ def main():
     f.close()
     update_progress("Processed all files. InstallationRecords: %d" % (InstallationRecordCount), 1)
 
-def createDepthSensor(root, datetime, installationParameters, prevParams, EMModel):
+def createDepthSensor(root, datetime, installationParameters, prevParams, EMModel, serialNumber):
     installationRecordDateString = datetime.strftime("%Y-%j %H:%M:%S")
 
     # if (set(prevParams) == set(newParams):
@@ -76,9 +76,32 @@ def createDepthSensor(root, datetime, installationParameters, prevParams, EMMode
     Latency.set('value', '0.000')
     W = SubElement(TimeStamp, 'SensorClass')
     W.set('value', "Swath")
+    C = SubElement(TimeStamp, 'Comment')
+    C.set('value', "from S1,2,3 X,Y,Z fields in .all file)")
 
+    # now do the transducers
     Trans = SubElement(TimeStamp, 'TransducerEntries')
 
+    #taken from EM datagram manual I-Installation Note 19 Table which documents the S-field mapping to the models.
+    if EMModel == 122 or \  
+       EMModel == 302 or \
+       EMModel == 710:
+       # S1 is Tx and S2 is Rx 
+
+    if EMModel == 2040:  
+       # S1 is Tx and S2 is Rx 
+
+    #TODO need to figure out how to identify dial head system! pkpk
+    #we can test for GO1 and GO2 which are the gain offsets for transducer 1 and 2.  If GO2 exists, we have a dual header
+    if EMModel == 2040 and "GO2" in installationParameters:
+       # S1 is Tx and S2 is Rx 
+
+    # EM 3002 and EM2040C
+    if EMModel == 3020 or \  
+       EMModel == 2045:
+       # S1 is SonarHead1 and S2 is SonarHead2
+
+    createTransducer1(Trans)
     # now convert transducer 1 entries
     newParams = {}
     newParams["S1X"] = installationParameters.get("S1X")
@@ -87,22 +110,27 @@ def createDepthSensor(root, datetime, installationParameters, prevParams, EMMode
     newParams["S1H"] = installationParameters.get("S1H")
     newParams["S1P"] = installationParameters.get("S1P")
     newParams["S1R"] = installationParameters.get("S1R")
-    Tx = SubElement(TimeStamp, 'Trans')
-    Tx.set('Number', "1")
-    Tx.set('StartBeam', "1")
-    Tx.set('Model', EMModel)
 
-    Off = SubElement(Tx, 'Offsets')
-    Off.set('X', newParams["S1X"])
-    Off.set('Y', newParams["S1Y"])
-    Off.set('Z', newParams["S1Z"])
-    Off.set('Latency', "0.000")
+    Transducer = SubElement(Trans, 'Transducer')
+    Transducer.set('Number', "1")
+    Transducer.set('StartBeam', "1")
+    Transducer.set('Model', getSimradCode(EMModel))
 
-    Mount = SubElement(Tx, 'MountAngle')
+    Offsets = SubElement(Transducer, 'Offsets')
+    Offsets.set('X', newParams["S1X"])
+    Offsets.set('Y', newParams["S1Y"])
+    Offsets.set('Z', newParams["S1Z"])
+    Offsets.set('Latency', "0.000")
+
+    Mount = SubElement(Transducer, 'MountAngle')
     Mount.set('Pitch', newParams["S1P"])
     Mount.set('Roll', newParams["S1R"])
     Mount.set('Azimuth', newParams["S1H"])
 
+    C1 = SubElement(Transducer, 'Manufacturer')
+    C1.set('value', "pyAllVesselConfig")
+    C3 = SubElement(Transducer, 'SerialNumber')
+    C3.set('value', str(serialNumber))
 
     newParams = {}
     newParams["S2X"] = installationParameters.get("S2X")
@@ -112,6 +140,27 @@ def createDepthSensor(root, datetime, installationParameters, prevParams, EMMode
     newParams["S2P"] = installationParameters.get("S2P")
     newParams["S2R"] = installationParameters.get("S2R")
 
+    Transducer = SubElement(Trans, 'Transducer')
+    Transducer.set('Number', "1")
+    Transducer.set('StartBeam', "1")
+    Transducer.set('Model', getSimradCode(EMModel))
+
+    Offsets = SubElement(Transducer, 'Offsets')
+    Offsets.set('X', newParams["S1X"])
+    Offsets.set('Y', newParams["S1Y"])
+    Offsets.set('Z', newParams["S1Z"])
+    Offsets.set('Latency', "0.000")
+
+    Mount = SubElement(Transducer, 'MountAngle')
+    Mount.set('Pitch', newParams["S1P"])
+    Mount.set('Roll', newParams["S1R"])
+    Mount.set('Azimuth', newParams["S1H"])
+
+    C1 = SubElement(Transducer, 'Manufacturer')
+    C1.set('value', "pyAllVesselConfig")
+    C3 = SubElement(Transducer, 'SerialNumber')
+    C3.set('value', str(serialNumber))
+
     newParams = {}
     newParams["S3X"] = installationParameters.get("S3X")
     newParams["S3Y"] = installationParameters.get("S3Y")
@@ -120,15 +169,6 @@ def createDepthSensor(root, datetime, installationParameters, prevParams, EMMode
     newParams["S3P"] = installationParameters.get("S3P")
     newParams["S3R"] = installationParameters.get("S3R")
 
-
-    ApplyFlag = SubElement(TimeStamp, 'ApplyFlag')
-    ApplyFlag.set('value', 'No')
-
-    W = SubElement(TimeStamp, 'StdDev')
-    W.set('Waterline', '0.000')
-
-    C = SubElement(TimeStamp, 'Comment')
-    C.set('value', "from WLZ waterline field")
 
     return root, newParams
 
@@ -466,6 +506,19 @@ def prettify(elem):
     rough_string = ElementTree.tostring(elem, 'utf-8')
     reparsed = minidom.parseString(rough_string)
     return reparsed.toprettyxml(indent="  ")
+
+def getSimradCode(EMModel):
+    SimradCode = ""
+    #   <SonarModel label="Simrad EM120" key="em120">
+    if str(EMModel) == "3020":
+        return "em3002"
+    if str(EMModel) == "2040":
+        return "em2040_200N"
+    if EMModel == "302":
+        return "em302"
+    if EMModel == "122":
+        return "em122"
+    return SimradCode
 
 def update_progress(job_title, progress):
     length = 20 # modify this to change the length

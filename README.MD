@@ -20,6 +20,7 @@ Done
 ===
 * Write the offsets to the HVF XML format suitable for CARIS
 * add support for timestamps based on differences in the .all file.  This means we need to read the xml file and compare the results with each install record.  If they are different, we need to create a new record.
+* we could make a mapping from the EMModel to the text strings in Caris here, but we would need more information. 
 
 Example
 -------
