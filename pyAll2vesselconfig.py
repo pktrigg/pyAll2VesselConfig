@@ -67,8 +67,8 @@ def main():
 
 def createDepthSensor(root, datetime, installationParameters, prevParams, EMModel, serialNumber):
     installationRecordDateString = datetime.strftime("%Y-%j %H:%M:%S")
+    startBeam = 1 # TODO - try automat this based on parameters in the .all file
 
-    # if (set(prevParams) == set(newParams):
     Sensor = SubElement(root, 'DepthSensor')
     TimeStamp = SubElement(Sensor, 'TimeStamp')
     TimeStamp.set('value', installationRecordDateString)
@@ -83,84 +83,63 @@ def createDepthSensor(root, datetime, installationParameters, prevParams, EMMode
     Trans = SubElement(TimeStamp, 'TransducerEntries')
 
     #taken from EM datagram manual I-Installation Note 19 Table which documents the S-field mapping to the models.
-    if EMModel == 122 or \  
+    if EMModel == 122 or \
        EMModel == 302 or \
        EMModel == 710:
         # S1 is Tx and S2 is Rx 
-        createTransducer1(Trans)
+        newParams = {}
+        newParams = {}
+        newParams["X"] = installationParameters.get("S1X")
+        newParams["Y"] = installationParameters.get("S1Y")
+        newParams["Z"] = installationParameters.get("S1Z")
+        newParams["H"] = installationParameters.get("S1H")
+        newParams["P"] = installationParameters.get("S1P")
+        newParams["R"] = installationParameters.get("S1R")
+        createTransducer1(Trans, 1, EMModel, serialNumber, startBeam, newParams)
+
+        newParams = {}
+        newParams["X"] = installationParameters.get("S2X")
+        newParams["Y"] = installationParameters.get("S2Y")
+        newParams["Z"] = installationParameters.get("S2Z")
+        newParams["H"] = installationParameters.get("S2H")
+        newParams["P"] = installationParameters.get("S2P")
+        newParams["R"] = installationParameters.get("S2R")
+        createTransducer1(Trans, 2, EMModel, serialNumber, startBeam, newParams)
 
     if EMModel == 2040:  
         # S1 is Tx and S2 is Rx 
-        createTransducer1(Trans)
+        newParams = {}
+        newParams["X"] = installationParameters.get("S1X")
+        newParams["Y"] = installationParameters.get("S1Y")
+        newParams["Z"] = installationParameters.get("S1Z")
+        newParams["H"] = installationParameters.get("S1H")
+        newParams["P"] = installationParameters.get("S1P")
+        newParams["R"] = installationParameters.get("S1R")
+        createTransducer1(Trans, 1, EMModel, serialNumber, startBeam, newParams, "Tx from S1X,Y,Z installation datagram")
+
+        newParams = {}
+        newParams["X"] = installationParameters.get("S2X")
+        newParams["Y"] = installationParameters.get("S2Y")
+        newParams["Z"] = installationParameters.get("S2Z")
+        newParams["H"] = installationParameters.get("S2H")
+        newParams["P"] = installationParameters.get("S2P")
+        newParams["R"] = installationParameters.get("S2R")
+        createTransducer1(Trans, 2, EMModel, serialNumber, startBeam, newParams, "Rx from S2X,Y,Z installation datagram")
+
 
     #TODO need to figure out how to identify dial head system! pkpk
     #we can test for GO1 and GO2 which are the gain offsets for transducer 1 and 2.  If GO2 exists, we have a dual header
     if EMModel == 2040 and "GO2" in installationParameters:
        # S1 is Tx and S2 is Rx 
+        newParams = {}
 
     # EM 3002 and EM2040C
-    if EMModel == 3020 or \  
+    if EMModel == 3020 or \
        EMModel == 2045:
        # S1 is SonarHead1 and S2 is SonarHead2
+        newParams = {}
 
-    # now convert transducer 1 entries
-    newParams = {}
-    newParams["S1X"] = installationParameters.get("S1X")
-    newParams["S1Y"] = installationParameters.get("S1Y")
-    newParams["S1Z"] = installationParameters.get("S1Z")
-    newParams["S1H"] = installationParameters.get("S1H")
-    newParams["S1P"] = installationParameters.get("S1P")
-    newParams["S1R"] = installationParameters.get("S1R")
 
-    Transducer = SubElement(Trans, 'Transducer')
-    Transducer.set('Number', "1")
-    Transducer.set('StartBeam', "1")
-    Transducer.set('Model', getSimradCode(EMModel))
-
-    Offsets = SubElement(Transducer, 'Offsets')
-    Offsets.set('X', newParams["S1X"])
-    Offsets.set('Y', newParams["S1Y"])
-    Offsets.set('Z', newParams["S1Z"])
-    Offsets.set('Latency', "0.000")
-
-    Mount = SubElement(Transducer, 'MountAngle')
-    Mount.set('Pitch', newParams["S1P"])
-    Mount.set('Roll', newParams["S1R"])
-    Mount.set('Azimuth', newParams["S1H"])
-
-    C1 = SubElement(Transducer, 'Manufacturer')
-    C1.set('value', "pyAllVesselConfig")
-    C3 = SubElement(Transducer, 'SerialNumber')
-    C3.set('value', str(serialNumber))
-
-    newParams = {}
-    newParams["S2X"] = installationParameters.get("S2X")
-    newParams["S2Y"] = installationParameters.get("S2Y")
-    newParams["S2Z"] = installationParameters.get("S2Z")
-    newParams["S2H"] = installationParameters.get("S2H")
-    newParams["S2P"] = installationParameters.get("S2P")
-    newParams["S2R"] = installationParameters.get("S2R")
-
-    Transducer = SubElement(Trans, 'Transducer')
-    Transducer.set('Number', "1")
-    Transducer.set('StartBeam', "1")
-    Transducer.set('Model', getSimradCode(EMModel))
-
-    Offsets = SubElement(Transducer, 'Offsets')
-    Offsets.set('X', newParams["S1X"])
-    Offsets.set('Y', newParams["S1Y"])
-    Offsets.set('Z', newParams["S1Z"])
-    Offsets.set('Latency', "0.000")
-
-    Mount = SubElement(Transducer, 'MountAngle')
-    Mount.set('Pitch', newParams["S1P"])
-    Mount.set('Roll', newParams["S1R"])
-    Mount.set('Azimuth', newParams["S1H"])
-
-    C1 = SubElement(Transducer, 'Manufacturer')
-    C1.set('value', "pyAllVesselConfig")
-    C3 = SubElement(Transducer, 'SerialNumber')
-    C3.set('value', str(serialNumber))
 
     newParams = {}
     newParams["S3X"] = installationParameters.get("S3X")
@@ -170,8 +149,34 @@ def createDepthSensor(root, datetime, installationParameters, prevParams, EMMode
     newParams["S3P"] = installationParameters.get("S3P")
     newParams["S3R"] = installationParameters.get("S3R")
 
-
     return root, newParams
+
+def createTransducer1(Trans, ID, EMModel, serialNumber, startBeam, newParams, Comment):
+
+    Transducer = SubElement(Trans, 'Transducer')
+    Transducer.set('Number', str(ID))
+    Transducer.set('StartBeam', "1")
+    Transducer.set('Model', getSimradCode(EMModel))
+
+    Offsets = SubElement(Transducer, 'Offsets')
+    Offsets.set('X', newParams["X"])
+    Offsets.set('Y', newParams["Y"])
+    Offsets.set('Z', newParams["Z"])
+    Offsets.set('Latency', "0.000")
+
+    Mount = SubElement(Transducer, 'MountAngle')
+    Mount.set('Pitch', newParams["P"])
+    Mount.set('Roll', newParams["R"])
+    Mount.set('Azimuth', newParams["H"])
+
+    C1 = SubElement(Transducer, 'Manufacturer')
+    C1.set('value', "pyAllVesselConfig")
+    C3 = SubElement(Transducer, 'SerialNumber')
+    C3.set('value', str(serialNumber))
+    Com = SubElement(Transducer, 'Comment')
+    Com.set('value', Comment)
+
+    return Trans
 
 def createWaterlineSensor(root, datetime, installationParameters, prevParams):
     installationRecordDateString = datetime.strftime("%Y-%j %H:%M:%S")
